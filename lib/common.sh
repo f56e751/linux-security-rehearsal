@@ -90,6 +90,18 @@ set_kv() {
   ok "설정: ${file}  →  ${newline}"
 }
 
+# ----- PAM 모듈 존재 확인 -----
+# _pam_mod_path NAME.so → 모듈 파일이 있으면 경로 출력 후 0, 없으면 1.
+#   (없는 모듈을 참조하는 PAM 라인을 넣으면 로그인 잠김 → 반드시 존재 확인 후 사용)
+_pam_mod_path() {
+  local n="$1" d
+  for d in /lib/security /lib64/security /usr/lib/security /usr/lib64/security \
+           /lib/*/security /usr/lib/*/security; do
+    if [ -e "$d/$n" ]; then printf '%s\n' "$d/$n"; return 0; fi
+  done
+  return 1
+}
+
 # ----- 산출물 접근권한 조정 -----
 # make_accessible FILE
 #   sudo 로 실행되어 root 소유로 만들어진 '결과 파일'을, 실제 호출한 일반 사용자가

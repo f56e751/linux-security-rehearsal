@@ -33,6 +33,49 @@ pam_add_args() {
   ok "PAM 설정: $file  ($module += $args)"
 }
 
+# RHEL 계열 계정 잠금: RHEL8+ 는 faillock.conf 가 authselect 로 auth 스택에 연결됨.
+apply_lockout_rhel() {
+  if [ -e /etc/security/faillock.conf ]; then
+    set_kv /etc/security/faillock.conf deny        10  " = "
+    set_kv /etc/security/faillock.conf unlock_time 120 " = "
+  else
+    warn "faillock.conf 없음(RHEL7?) → /etc/pam.d/system-auth 의 pam_tally2 수동 확인 권장"
+  fi
+}
+
+# Debian/Ubuntu 계정 잠금: 공식 점검이 /etc/pam.d/common-auth 를 보므로 여기에 라인 추가.
+#   ※ auth 스택 편집이라 가장 조심스러운 부분 → 모듈이 실제 존재할 때만 추가한다.
+#   common-auth 는 백업 대상이라 all 이 자동 원복 / restore 로 복구 가능.
+apply_lockout_debian() {
+  local ca=/etc/pam.d/common-auth
+  if is_dry; then log "[dry-run] $ca 에 계정 잠금(deny=10) 라인 추가"; return 0; fi
+  [ -e "$ca" ] || { warn "$ca 없음 — 잠금 설정 건너뜀"; return 0; }
+  if grep -Eq '^[^#].*deny=' "$ca"; then
+    log "$ca 에 이미 deny= 설정 존재 — 건너뜀(중복/충돌 방지)"; return 0
+  fi
+  local line=""
+  if _pam_mod_path pam_tally2.so >/dev/null; then
+    line=$'auth\trequired\tpam_tally2.so onerr=fail deny=10 unlock_time=120'
+  elif _pam_mod_path pam_faillock.so >/dev/null; then
+    line=$'auth\trequired\tpam_faillock.so preauth silent deny=10 unlock_time=120'
+    [ -e /etc/security/faillock.conf ] && { set_kv /etc/security/faillock.conf deny 10 " = "; set_kv /etc/security/faillock.conf unlock_time 120 " = "; }
+  else
+    warn "pam_tally2/pam_faillock 모듈을 찾을 수 없음 — 잠금 설정 수동 필요"; return 0
+  fi
+  # 첫 활성 auth 라인 앞에 삽입 (awk 비의존 → mawk 문제 없음)
+  local tmp="${ca}.rehearse.tmp" inserted=0 ln
+  : > "$tmp"
+  while IFS= read -r ln || [ -n "$ln" ]; do
+    if [ "$inserted" = 0 ] && printf '%s\n' "$ln" | grep -Eq '^[[:space:]]*auth[[:space:]]'; then
+      printf '%s\n' "$line" >> "$tmp"; inserted=1
+    fi
+    printf '%s\n' "$ln" >> "$tmp"
+  done < "$ca"
+  [ "$inserted" = 0 ] && printf '%s\n' "$line" >> "$tmp"
+  cat "$tmp" > "$ca"; rm -f "$tmp"
+  ok "잠금 설정: $ca 맨 위에 추가 → ${line//$'\t'/ }"
+}
+
 apply_hardening() {
   detect_distro
 
@@ -68,13 +111,11 @@ apply_hardening() {
   esac
 
   log "== 3) 계정 잠금 임계값 (deny<=10) =="
-  if [ -e /etc/security/faillock.conf ]; then
-    set_kv /etc/security/faillock.conf deny        10  " = "
-    set_kv /etc/security/faillock.conf unlock_time 120 " = "
-  else
-    warn "faillock.conf 없음 → PAM(pam_faillock / pam_tally2) 라인은 배포판별로 수동 확인 권장"
-    warn "  예) auth ... pam_faillock.so preauth ... deny=10 unlock_time=120"
-  fi
+  case "$DISTRO_FAMILY" in
+    debian) apply_lockout_debian ;;
+    rhel)   apply_lockout_rhel ;;
+    *)      warn "배포판 미확인 — 계정 잠금 설정은 수동 확인이 필요합니다." ;;
+  esac
 
   ok "보안 조치 적용 완료"
 }
