@@ -29,6 +29,7 @@ run_one() {
   local REMOTE_DIR="${REMOTE_DIR:-/home/$USER/Documents/linux-security-rehearsal}"
   local LOCAL_DIR="${LOCAL_DIR:-$HOME/Downloads/${HOST}-results}"
   local REHEARSE_ARGS="${REHEARSE_ARGS:-all --fetch --no-mark -y}"
+  local REPO_URL="${REPO_URL:-https://github.com/f56e751/linux-security-rehearsal.git}"
   local SUDO_PASSWORD="${SUDO_PASSWORD:-}"
   local SSH_LOGIN_PASSWORD="${SSH_LOGIN_PASSWORD:-}"
   mkdir -p "$LOCAL_DIR"
@@ -45,8 +46,8 @@ run_one() {
   fi
   local TARGET="$USER@$HOST"
 
-  echo "[*] ($TARGET:$SSH_PORT) 코드 업데이트(git pull)..."
-  "${SSH[@]}" "$TARGET" "cd '$REMOTE_DIR' && (git pull -q || true)"
+  echo "[*] ($TARGET:$SSH_PORT) 코드 준비(없으면 clone, 있으면 pull)..."
+  "${SSH[@]}" "$TARGET" "if [ -d '$REMOTE_DIR/.git' ]; then cd '$REMOTE_DIR' && (git pull -q || true); else echo '  → 최초 설치: git clone'; git clone -q '$REPO_URL' '$REMOTE_DIR'; fi"
 
   echo "[*] ($TARGET) 실행: rehearse.sh $REHEARSE_ARGS"
   if [ -n "$SUDO_PASSWORD" ]; then
