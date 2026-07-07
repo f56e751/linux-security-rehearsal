@@ -3,5 +3,6 @@ backups/
 results/
 Linux_Password_Check.sh
 
-# 비밀번호가 든 원격 설정은 절대 커밋 금지
-remote.conf
+# 비밀번호가 든 원격 설정은 절대 커밋 금지 (서버별 *.conf 전부)
+# remote.conf.example 은 .conf 로 끝나지 않으므로 계속 추적됨
+*.conf
