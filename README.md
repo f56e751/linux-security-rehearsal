@@ -81,6 +81,7 @@ sudo ./rehearse.sh all --no-mark -y
 # 개별 명령
 sudo ./rehearse.sh backup     # 백업만
 sudo ./rehearse.sh check      # 점검만
+./rehearse.sh show            # 현재 설정 값 출력(안전/취약 판정 없이, 권한 불필요)
 sudo ./rehearse.sh fetch      # 공식 점검 스크립트 다운로드(학내망 전용)
 sudo ./rehearse.sh apply      # 조치만 (복원하지 않음 — 운영 서버 실제 적용용)
 sudo ./rehearse.sh restore    # 가장 최근 백업으로 복원

@@ -89,3 +89,13 @@ set_kv() {
   fi
   ok "설정: ${file}  →  ${newline}"
 }
+
+# ----- 현재 값 읽기 -----
+# get_val FILE KEY  → 활성(주석 아님) KEY 의 마지막 값을 출력. 없거나 주석뿐이면 빈 값.
+# 공백/탭/'=' 구분자 모두 처리. awk 비의존(grep+sed).
+get_val() {
+  local file="$1" key="$2"
+  [ -r "$file" ] || return 0
+  grep -E "^[[:space:]]*${key}[[:space:]=]" "$file" 2>/dev/null | tail -1 \
+    | sed -E "s/^[[:space:]]*${key}[[:space:]=]+//; s/[[:space:]].*$//" || true
+}

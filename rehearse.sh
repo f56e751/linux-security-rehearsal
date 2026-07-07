@@ -37,6 +37,7 @@ usage() {
   all         전체 리허설: 백업 → 점검 → 조치 → 재점검 → 복원 → 복원검증
   backup      현재 설정 백업만 수행
   check       점검만 수행(공식 스크립트 있으면 우선, 없으면 자체점검)
+  show        현재 설정 값들을 그대로 출력(안전/취약 판정 없이)
   fetch       [--force]  공식 점검 스크립트를 학내망에서 다운로드
   apply       보안 조치(하드닝)만 수행  ※ 복원하지 않음
   restore     [백업경로]  지정 백업으로 복원(생략 시 가장 최근 백업)
@@ -53,6 +54,7 @@ usage() {
 예시
   sudo ./rehearse.sh all --dry-run     # 무엇이 바뀌는지 먼저 확인
   sudo ./rehearse.sh all --fetch -y    # 공식 스크립트 자동 다운로드 후 리허설
+  ./rehearse.sh show                   # 현재 설정 값 확인(관리자 권한 불필요)
   sudo ./rehearse.sh fetch             # 공식 스크립트만 내려받기
   sudo ./rehearse.sh backup            # 백업만
   sudo ./rehearse.sh restore           # 최근 백업으로 되돌리기
@@ -133,6 +135,21 @@ cmd_restore() {
   restore_configs "$bdir"
 }
 
+cmd_show() {
+  detect_distro
+  log "현재 설정 값 (관리 대상 항목 — 기준과 비교는 'check')"
+  local row_file
+  _hdr() { row_file="$1"; if [ -e "$1" ]; then printf '  [%s]\n' "$1"; else printf '  [%s]  (파일 없음)\n' "$1"; fi; }
+  _row() { local v; v="$(get_val "$row_file" "$1")"; printf '      %-14s = %s\n' "$1" "${v:-<미설정>}"; }
+
+  _hdr /etc/login.defs
+  _row PASS_MIN_LEN;  _row PASS_MAX_DAYS;  _row PASS_MIN_DAYS
+  _hdr /etc/security/pwquality.conf
+  _row lcredit;  _row ocredit;  _row dcredit;  _row minlen
+  _hdr /etc/security/faillock.conf
+  _row deny;  _row unlock_time
+}
+
 cmd_verify() {
   local bdir="${1:-}"
   if [ -z "$bdir" ]; then
@@ -162,6 +179,7 @@ case "$CMD" in
   all)     cmd_all ;;
   backup)  require_root; banner; backup_configs "$BACKUP_ROOT/$(date +%Y-%m-%d_%H-%M-%S)" ;;
   check)   if [ "$FETCH" = "1" ]; then fetch_official || true; fi; run_check "$RESULT_DIR" ;;
+  show)    cmd_show ;;
   fetch)   fetch_official "${POSITIONAL[0]:-}" ;;
   apply)   require_root; banner; confirm; apply_hardening ;;
   restore) cmd_restore "${POSITIONAL[0]:-}" ;;
