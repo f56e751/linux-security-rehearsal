@@ -46,15 +46,28 @@ run_one() {
   fi
   local TARGET="$USER@$HOST"
 
-  echo "[*] ($TARGET:$SSH_PORT) 코드 준비(없으면 clone, 있으면 pull)..."
-  "${SSH[@]}" "$TARGET" "if [ -d '$REMOTE_DIR/.git' ]; then cd '$REMOTE_DIR' && (git pull -q || true); else echo '  → 최초 설치: git clone'; git clone -q '$REPO_URL' '$REMOTE_DIR'; fi"
+  # sudo 실행 방식: 비번 있으면 stdin(-S), 없으면 NOPASSWD 가정
+  local SUDO_CMD; if [ -n "$SUDO_PASSWORD" ]; then SUDO_CMD="sudo -S -p ''"; else SUDO_CMD="sudo"; fi
+  ssh_sudo() {  # 원격 명령을 실행하되, 비번이 설정돼 있으면 stdin 으로 전달
+    if [ -n "$SUDO_PASSWORD" ]; then "${SSH[@]}" "$TARGET" "$1" <<< "$SUDO_PASSWORD"
+    else "${SSH[@]}" "$TARGET" "$1"; fi
+  }
+
+  echo "[*] ($TARGET:$SSH_PORT) 준비: git 확인/설치 → clone 또는 pull..."
+  ssh_sudo "
+    if ! command -v git >/dev/null 2>&1; then
+      echo '  → git 미설치: 설치 시도';
+      if   command -v apt-get >/dev/null 2>&1; then $SUDO_CMD sh -c 'apt-get update -qq && apt-get install -y -qq git';
+      elif command -v dnf     >/dev/null 2>&1; then $SUDO_CMD dnf install -y -q git;
+      elif command -v yum     >/dev/null 2>&1; then $SUDO_CMD yum install -y -q git;
+      else echo '  [!] 패키지 관리자를 못 찾음 — git 을 수동 설치하세요'; fi;
+    fi;
+    if [ -d '$REMOTE_DIR/.git' ]; then cd '$REMOTE_DIR' && (git pull -q || true);
+    else echo '  → 최초 설치: git clone'; git clone -q '$REPO_URL' '$REMOTE_DIR'; fi
+  "
 
   echo "[*] ($TARGET) 실행: rehearse.sh $REHEARSE_ARGS"
-  if [ -n "$SUDO_PASSWORD" ]; then
-    "${SSH[@]}" "$TARGET" "cd '$REMOTE_DIR' && sudo -S -p '' ./rehearse.sh $REHEARSE_ARGS" <<< "$SUDO_PASSWORD"
-  else
-    "${SSH[@]}" "$TARGET" "cd '$REMOTE_DIR' && sudo ./rehearse.sh $REHEARSE_ARGS"
-  fi
+  ssh_sudo "cd '$REMOTE_DIR' && $SUDO_CMD ./rehearse.sh $REHEARSE_ARGS"
 
   echo "[*] 최신 결과 파일 확인..."
   local LATEST
