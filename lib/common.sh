@@ -75,11 +75,13 @@ set_kv() {
     : > "$file"
   fi
   local tmp="${file}.rehearse.tmp"
-  if grep -Eq "^[[:space:]]*#?[[:space:]]*${key}[[:space:]=]" "$file"; then
-    awk -v key="$key" -v line="$newline" '
-      !done && $0 ~ ("^[[:space:]]*#?[[:space:]]*" key "[[:space:]=]") { print line; done=1; next }
-      { print }
-    ' "$file" > "$tmp"
+  # 기존(또는 주석 처리된) KEY 라인을 grep 으로 제거한 뒤 새 값을 추가한다.
+  # awk 에 의존하지 않으므로 mawk/gawk/BSD awk 어디서든 동일하게 동작한다.
+  # (grep 매칭은 GNU/BSD 모두 신뢰 가능 — 탭/공백/'=' 구분자 모두 처리)
+  local pat="^[[:space:]]*#?[[:space:]]*${key}[[:space:]=]"
+  if grep -Eq "$pat" "$file"; then
+    grep -Ev "$pat" "$file" > "$tmp" || true    # KEY 라인만 빼고 나머지 보존
+    printf '%s\n' "$newline" >> "$tmp"
     cat "$tmp" > "$file"
     rm -f "$tmp"
   else
