@@ -67,6 +67,22 @@ PASS=$(ls -t results/*.txt | head -1)   # 방금 생성된 통과 파일
 > `all` 은 마지막에 자동 복원하므로 **테스트 서버 전용**입니다. 운영 서버에 강화를
 > 유지하려면 `all` 대신 `backup` + `apply` 만 쓰고 `restore` 는 하지 마세요.
 
+## 노트북에서 원격 한 방에 (remote-run.sh)
+
+서버에 SSH 접속 → `git pull` → `sudo ./rehearse.sh all --fetch --no-mark -y` →
+**결과 txt 를 노트북으로 자동 복사**까지 한 번에.
+
+```bash
+cp remote.conf.example remote.conf     # 값 채우기 (IP / 사용자 / sudo 비번)
+chmod 600 remote.conf
+./remote-run.sh                        # 노트북에서 실행
+```
+
+- 로그인은 **SSH 키**(권장, 앞서 등록) 또는 `SSH_LOGIN_PASSWORD` + sshpass
+- `SUDO_PASSWORD` 는 서버 sudo 용 (비우면 NOPASSWD sudo 가정)
+- 결과는 `~/Downloads/<HOST>-results/` 에 저장(`LOCAL_DIR` 로 변경 가능)
+- ⚠️ `remote.conf` 는 **비밀번호 평문**이라 `.gitignore` 처리됨 — 공유/커밋 금지, 권한 600 유지
+
 ## 사용법
 
 ```bash

@@ -1,0 +1,25 @@
+# remote.conf — 원격 실행 설정 (이 파일을 remote.conf 로 복사해서 값을 채우세요)
+#
+#   cp remote.conf.example remote.conf
+#   (편집 후) chmod 600 remote.conf
+#
+# ⚠️ 비밀번호가 들어가므로 절대 공개 저장소/타인과 공유 금지.
+#    remote.conf 는 .gitignore 에 등록돼 있어 git 에 올라가지 않습니다.
+
+HOST=147.46.245.125            # 서버 IP 또는 호스트명(robot4)
+USER=robotics                  # SSH 사용자
+SSH_PORT=22                    # SSH 포트(기본 22)
+
+# rehearse.sh 는 sudo 가 필요합니다. 아래에 sudo 비밀번호를 넣으세요.
+#  - 비워두면: 서버에 NOPASSWD sudo 가 설정돼 있다고 가정하고 그냥 sudo 실행
+SUDO_PASSWORD=여기에_sudo_비밀번호
+
+# SSH 로그인 방식
+#  - 비워두면(권장): SSH 키로 로그인 (앞서 등록한 공개키 사용, 비번 불필요)
+#  - 채우면: sshpass 로 비밀번호 로그인 (sshpass 설치 필요, mac: brew install sshpass)
+SSH_LOGIN_PASSWORD=
+
+# 경로/옵션 (기본값 쓰려면 그대로 두세요)
+REMOTE_DIR=/home/robotics/Documents/linux-security-rehearsal
+LOCAL_DIR=                     # 비우면 ~/Downloads/<HOST>-results 로 저장
+REHEARSE_ARGS=all --fetch --no-mark -y
