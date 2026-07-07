@@ -21,6 +21,13 @@ for f in "${FILES[@]}"; do
   b="$(basename "$f" .conf)"
   if [ ! -f "$f" ]; then printf '  %-10s ⚠️ 파일 없음\n' "$b"; problems=$((problems+1)); continue; fi
 
+  # source 시 에러가 나면(따옴표 없는 값 등) 먼저 잡아낸다
+  srcerr="$(bash -c "source '$f'" 2>&1 1>/dev/null)"
+  if [ -n "$srcerr" ]; then
+    printf '  %-10s ⚠️ 파싱 오류 → 값에 따옴표 확인 (%s)\n' "$b" "${srcerr#*: }"
+    problems=$((problems+1)); continue
+  fi
+
   host="$(grep -m1 '^HOST=' "$f" | cut -d= -f2-)"
   val="$(grep -m1 '^SUDO_PASSWORD=' "$f" 2>/dev/null | sed 's/^SUDO_PASSWORD=//')"
   slp="$(grep -m1 '^SSH_LOGIN_PASSWORD=' "$f" | cut -d= -f2-)"

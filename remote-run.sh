@@ -113,6 +113,6 @@ echo "  ✔ 성공 ${ok_n}:${OK_NAMES:-  (없음)}"
 echo "  ✘ 실패 ${fail_n}:${FAIL_NAMES:-  (없음)}"
 if [ "$fail_n" -gt 0 ]; then
   echo "  · 실패 서버 원인은 위 로그에서 해당 이름으로 검색해 확인하세요."
-  echo "  · 결과 파일은 노트북의 ~/Downloads/<HOST>-results/ 에 서버별로 저장됩니다."
+  echo "  · 성공한 서버 결과는 collected/ 폴더(또는 conf 의 LOCAL_DIR)에 저장됩니다."
 fi
 exit $rc
