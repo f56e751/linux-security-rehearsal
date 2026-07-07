@@ -22,10 +22,12 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DRY_RUN=0
 ASSUME_YES=0
 MARK=1                                              # 1=결과에 '리허설/비공식' 표시, 0=표시 없음
+FETCH=0                                              # 1=점검 전 공식 스크립트 자동 다운로드 시도
 LAST_RESULT=""                                       # run_check 가 채우는 최근 결과 파일 경로
 BACKUP_ROOT="$HERE/backups"
 RESULT_DIR="$HERE/results"
 OFFICIAL_SCRIPT="$HERE/Linux_Password_Check.sh"   # 있으면 이 공식 스크립트로 점검
+OFFICIAL_URL="http://snucert.snu.ac.kr/Password_Check/Linux_Password_Check.sh"  # 학내망 전용
 
 usage() {
   cat <<'EOF'
@@ -35,6 +37,7 @@ usage() {
   all         전체 리허설: 백업 → 점검 → 조치 → 재점검 → 복원 → 복원검증
   backup      현재 설정 백업만 수행
   check       점검만 수행(공식 스크립트 있으면 우선, 없으면 자체점검)
+  fetch       [--force]  공식 점검 스크립트를 학내망에서 다운로드
   apply       보안 조치(하드닝)만 수행  ※ 복원하지 않음
   restore     [백업경로]  지정 백업으로 복원(생략 시 가장 최근 백업)
   verify      [백업경로]  현재 설정이 백업과 일치하는지(=원복 완료) 검증
@@ -43,12 +46,14 @@ usage() {
 옵션
   --dry-run   실제 변경 없이 수행할 작업만 출력
   --no-mark   자체점검 결과에서 '리허설/비공식' 표시 제거 (내 로컬 검증 도구 테스트용)
+  --fetch     점검 전 공식 스크립트를 학내망에서 자동 다운로드(실패 시 자체점검)
   --yes, -y   확인 프롬프트 없이 진행
   -h, --help  도움말
 
 예시
   sudo ./rehearse.sh all --dry-run     # 무엇이 바뀌는지 먼저 확인
-  sudo ./rehearse.sh all               # 실제 리허설(자동 복원 포함)
+  sudo ./rehearse.sh all --fetch -y    # 공식 스크립트 자동 다운로드 후 리허설
+  sudo ./rehearse.sh fetch             # 공식 스크립트만 내려받기
   sudo ./rehearse.sh backup            # 백업만
   sudo ./rehearse.sh restore           # 최근 백업으로 되돌리기
 EOF
@@ -82,6 +87,11 @@ cmd_all() {
   stamp="$(date +%Y-%m-%d_%H-%M-%S)"
   bdir="$BACKUP_ROOT/$stamp"
   mkdir -p "$RESULT_DIR"
+
+  if [ "$FETCH" = "1" ]; then
+    log "STEP 0     공식 점검 스크립트 다운로드"
+    fetch_official || true          # 실패해도(학내망 밖 등) 자체 점검으로 계속
+  fi
 
   log "STEP 1/6  원본 설정 백업"
   backup_configs "$bdir"
@@ -140,6 +150,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
     --no-mark) MARK=0 ;;
+    --fetch)   FETCH=1 ;;
     -y|--yes)  ASSUME_YES=1 ;;
     -h|--help) usage; exit 0 ;;
     *)         POSITIONAL+=("$1") ;;
@@ -150,7 +161,8 @@ done
 case "$CMD" in
   all)     cmd_all ;;
   backup)  require_root; banner; backup_configs "$BACKUP_ROOT/$(date +%Y-%m-%d_%H-%M-%S)" ;;
-  check)   run_check "$RESULT_DIR" ;;
+  check)   if [ "$FETCH" = "1" ]; then fetch_official || true; fi; run_check "$RESULT_DIR" ;;
+  fetch)   fetch_official "${POSITIONAL[0]:-}" ;;
   apply)   require_root; banner; confirm; apply_hardening ;;
   restore) cmd_restore "${POSITIONAL[0]:-}" ;;
   verify)  cmd_verify "${POSITIONAL[0]:-}" ;;

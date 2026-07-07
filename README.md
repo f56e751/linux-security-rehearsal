@@ -81,6 +81,7 @@ sudo ./rehearse.sh all --no-mark -y
 # 개별 명령
 sudo ./rehearse.sh backup     # 백업만
 sudo ./rehearse.sh check      # 점검만
+sudo ./rehearse.sh fetch      # 공식 점검 스크립트 다운로드(학내망 전용)
 sudo ./rehearse.sh apply      # 조치만 (복원하지 않음 — 운영 서버 실제 적용용)
 sudo ./rehearse.sh restore    # 가장 최근 백업으로 복원
 sudo ./rehearse.sh restore backups/2024-...   # 특정 백업으로 복원
@@ -115,9 +116,24 @@ sudo ./rehearse.sh list       # 백업 목록
 
 ## 공식 스크립트 연동
 
-학내망에서 받은 `Linux_Password_Check.sh` 를 이 폴더에 두면 `check` 단계에서
-자체 점검 대신 공식 스크립트를 실행합니다.
+`Linux_Password_Check.sh` 가 이 폴더에 있으면 `check`/`all` 이 자체 점검 대신
+공식 스크립트를 실행하고, **공식 형식 결과 파일**을 만듭니다.
+
+**자동 다운로드** — `--fetch` 또는 `fetch` 명령:
+
+```bash
+sudo ./rehearse.sh fetch                 # 공식 스크립트만 내려받기
+sudo ./rehearse.sh all --fetch --no-mark -y   # 다운로드 후 곧바로 리허설
+```
+
+**수동 다운로드**도 가능:
 
 ```bash
 wget http://snucert.snu.ac.kr/Password_Check/Linux_Password_Check.sh   # 학내망 전용
+# 안 되면: curl -O http://snucert.snu.ac.kr/Password_Check/Linux_Password_Check.sh
 ```
+
+주의:
+- **학내망(SNU)에서만** 다운로드됩니다. 교외망이면 실패하고 자동으로 **자체 점검**으로 넘어갑니다(중단 없음).
+- HTTP 로 받아 `sudo` 로 실행되므로, 교내망과 snucert 서버를 신뢰하는 환경에서만 쓰세요(안내문 절차와 동일).
+- 이 파일은 `.gitignore` 대상이라 git 에 올라가지 않습니다(장비마다 각자 받는 것).

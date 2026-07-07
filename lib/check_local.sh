@@ -5,6 +5,44 @@
 #     제출용 공식 결과와 반드시 구분되도록 합니다.
 # common.sh 를 먼저 source 한 상태에서 사용합니다.
 
+# fetch_official [--force]
+#   공식 점검 스크립트를 OFFICIAL_URL 에서 OFFICIAL_SCRIPT 위치로 내려받는다.
+#   ※ 학내망(SNU)에서만 다운로드 가능. HTTP 로 받아 sudo 로 실행되므로,
+#     교내망과 snucert 서버를 신뢰하는 환경에서만 사용할 것(안내문 절차와 동일).
+#   실패해도 중단하지 않고 1 을 반환 → 호출부에서 자체 점검으로 넘어갈 수 있게 한다.
+fetch_official() {
+  local url="${OFFICIAL_URL:-}" dest="${OFFICIAL_SCRIPT:-}" force="${1:-}"
+  [ -n "$url" ] && [ -n "$dest" ] || { warn "fetch: URL/저장경로가 설정되지 않음"; return 1; }
+  if [ -f "$dest" ] && [ "$force" != "--force" ]; then
+    log "공식 스크립트 이미 있음: $dest  (다시 받으려면: fetch --force)"
+    return 0
+  fi
+  if is_dry; then log "[dry-run] 공식 스크립트 다운로드: $url → $dest"; return 0; fi
+
+  log "공식 점검 스크립트 다운로드 시도: $url"
+  local tmp="${dest}.download"
+  rm -f "$tmp"
+  if command -v wget >/dev/null 2>&1 && wget -q -O "$tmp" "$url"; then
+    :
+  elif command -v curl >/dev/null 2>&1 && curl -fsSL -o "$tmp" "$url"; then
+    :
+  else
+    rm -f "$tmp"
+    warn "다운로드 실패 (학내망에서만 가능). 자체 점검으로 진행합니다."
+    return 1
+  fi
+  if [ ! -s "$tmp" ]; then
+    rm -f "$tmp"; warn "받은 파일이 비어있음 — 자체 점검으로 진행합니다."; return 1
+  fi
+  if head -c1 "$tmp" | grep -q '<'; then
+    rm -f "$tmp"; warn "받은 내용이 스크립트가 아닌 것으로 보임(HTML 오류 페이지?) — 자체 점검으로 진행합니다."; return 1
+  fi
+  mv "$tmp" "$dest"
+  chmod +x "$dest" 2>/dev/null || true
+  ok "공식 스크립트 저장: $dest  ($(wc -c < "$dest" | tr -d ' ') bytes)"
+  return 0
+}
+
 # run_check OUTDIR
 #   생성된 결과 파일 경로를 전역 LAST_RESULT 에 담아 호출부에서 참조 가능.
 run_check() {
