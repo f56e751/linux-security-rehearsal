@@ -55,6 +55,7 @@ run_check() {
     chmod +x "$script" 2>/dev/null || true
     ( cd "$outdir" && bash "$script" ) || warn "공식 스크립트 실행 중 경고(계속 진행)"
     LAST_RESULT="$(ls -t "$outdir"/*.txt 2>/dev/null | head -1)" || true
+    if [ -n "$LAST_RESULT" ]; then make_accessible "$LAST_RESULT"; fi
     ok "공식 점검 결과 파일이 $outdir 에 생성되었습니다."
     return 0
   fi
@@ -71,6 +72,7 @@ run_check() {
   out="$outdir/${host}-linux-${tag}-${ts}.txt"
   local_check > "$out"
   LAST_RESULT="$out"
+  make_accessible "$out"
   ok "자체 점검 결과: $out"
   grep -E '\[(안전|취약)\]' "$out" || true
 }

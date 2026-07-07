@@ -90,6 +90,20 @@ set_kv() {
   ok "설정: ${file}  →  ${newline}"
 }
 
+# ----- 산출물 접근권한 조정 -----
+# make_accessible FILE
+#   sudo 로 실행되어 root 소유로 만들어진 '결과 파일'을, 실제 호출한 일반 사용자가
+#   읽을 수 있도록 소유권/권한을 조정한다.
+#   ※ 백업본에는 쓰지 말 것 — 복원 시 원본(root) 소유를 그대로 되돌려야 하므로.
+make_accessible() {
+  local p="$1"
+  [ -e "$p" ] || return 0
+  chmod a+r "$p" 2>/dev/null || true
+  if [ -n "${SUDO_USER:-}" ]; then
+    chown "$SUDO_USER" "$p" 2>/dev/null || true
+  fi
+}
+
 # ----- 현재 값 읽기 -----
 # get_val FILE KEY  → 활성(주석 아님) KEY 의 마지막 값을 출력. 없거나 주석뿐이면 빈 값.
 # 공백/탭/'=' 구분자 모두 처리. awk 비의존(grep+sed).
