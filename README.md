@@ -89,7 +89,9 @@ cp remote.conf.example robot5.conf     # 각각 값 채우고 chmod 600
 - 서버마다 **접속 확인(OK/실패)** 을 먼저 찍고, 맨 끝에 **성공/실패 요약**(서버 목록) 출력
 - **자동 설치**: 서버에 도구가 없으면 `git clone`, git 자체가 없으면 apt/dnf/yum 으로 설치까지 시도
 - 결과 txt 는 레포 안 **`collected/`** 폴더에 모임(파일명에 서버 호스트명이 있어 안 겹침). `LOCAL_DIR` 로 변경 가능
-- 로그인은 **SSH 키**(권장, 앞서 등록) 또는 `SSH_LOGIN_PASSWORD` + sshpass
+- 로그인은 **SSH 키**(권장) 또는 비번. 비번 로그인은 `--pw-login`(conf 의 SUDO_PASSWORD 재사용)
+  또는 conf 의 `SSH_LOGIN_PASSWORD` 사용 — 둘 다 **sshpass** 필요
+  (mac: `brew install hudochenkov/sshpass/sshpass`)
 - `SUDO_PASSWORD` 는 서버 sudo 용 (비우면 NOPASSWD sudo 가정)
 - ⚠️ `*.conf` 는 **비밀번호 평문**이라 `.gitignore` 처리됨 — 공유/커밋 금지, 권한 600 유지
 

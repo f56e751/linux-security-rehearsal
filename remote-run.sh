@@ -36,10 +36,13 @@ run_one() {
 
   local SSH_OPTS=(-p "$SSH_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
   local SCP_OPTS=(-P "$SSH_PORT" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
+  # 로그인 비번: SSH_LOGIN_PASSWORD 우선, 없고 --pw-login 이면 SUDO_PASSWORD 재사용
+  local LOGIN_PW="${SSH_LOGIN_PASSWORD:-}"
+  if [ -z "$LOGIN_PW" ] && [ "${PW_LOGIN:-0}" = "1" ]; then LOGIN_PW="$SUDO_PASSWORD"; fi
   local -a SSH SCP
-  if [ -n "$SSH_LOGIN_PASSWORD" ]; then
-    command -v sshpass >/dev/null 2>&1 || { echo "[x] sshpass 미설치 → 'brew install sshpass' 하거나 SSH 키 사용"; return 1; }
-    export SSHPASS="$SSH_LOGIN_PASSWORD"
+  if [ -n "$LOGIN_PW" ]; then
+    command -v sshpass >/dev/null 2>&1 || { echo "[x] sshpass 미설치 → mac: 'brew install hudochenkov/sshpass/sshpass', 또는 SSH 키 사용"; return 1; }
+    export SSHPASS="$LOGIN_PW"
     SSH=(sshpass -e ssh "${SSH_OPTS[@]}"); SCP=(sshpass -e scp "${SCP_OPTS[@]}")
   else
     SSH=(ssh "${SSH_OPTS[@]}"); SCP=(scp "${SCP_OPTS[@]}")
@@ -87,8 +90,15 @@ run_one() {
   echo "[+] 완료 → $LOCAL_DIR/$(basename "$LATEST")"
 }
 
-# ----- 설정 파일 목록 결정 -----
-CONFS=("$@")
+# ----- 인자 파싱: 플래그와 설정파일 분리 -----
+PW_LOGIN=0
+CONFS=()
+for a in "$@"; do
+  case "$a" in
+    --pw-login) PW_LOGIN=1 ;;   # SSH 로그인에 SUDO_PASSWORD 재사용(sshpass 필요)
+    *)          CONFS+=("$a") ;;
+  esac
+done
 if [ ${#CONFS[@]} -eq 0 ]; then CONFS=("$HERE/remote.conf"); fi
 
 rc=0
