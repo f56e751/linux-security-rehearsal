@@ -46,6 +46,15 @@ run_one() {
   fi
   local TARGET="$USER@$HOST"
 
+  # 접속 확인 (실패 사유는 위에 뜨는 SSH 오류로 확인: 타임아웃/거부/인증실패 등)
+  echo "[*] ($TARGET:$SSH_PORT) 접속 확인..."
+  if "${SSH[@]}" "$TARGET" true; then
+    echo "[+] ($TARGET) 접속 OK"
+  else
+    echo "[x] ($TARGET) 접속 실패 — 건너뜀"
+    return 1
+  fi
+
   # sudo 실행 방식: 비번 있으면 stdin(-S), 없으면 NOPASSWD 가정
   local SUDO_CMD; if [ -n "$SUDO_PASSWORD" ]; then SUDO_CMD="sudo -S -p ''"; else SUDO_CMD="sudo"; fi
   ssh_sudo() {  # 원격 명령을 실행하되, 비번이 설정돼 있으면 stdin 으로 전달
@@ -85,10 +94,25 @@ if [ ${#CONFS[@]} -eq 0 ]; then CONFS=("$HERE/remote.conf"); fi
 rc=0
 total=${#CONFS[@]}
 i=0
+ok_n=0; fail_n=0; OK_NAMES=""; FAIL_NAMES=""   # 문자열 누적(bash 3.2 호환)
 for conf in "${CONFS[@]}"; do
   i=$((i+1))
-  echo "════════════════════════════════════════  [$i/$total] $conf"
-  if ( run_one "$conf" ); then :; else echo "[x] 실패: $conf (다음 서버 계속)"; rc=1; fi
+  name="$(basename "$conf" .conf)"
+  echo "════════════════════════════════════════  [$i/$total] $name"
+  if ( run_one "$conf" ); then
+    ok_n=$((ok_n+1)); OK_NAMES="$OK_NAMES $name"
+  else
+    echo "[x] 실패: $name (다음 서버 계속)"
+    fail_n=$((fail_n+1)); FAIL_NAMES="$FAIL_NAMES $name"; rc=1
+  fi
 done
-echo "════════════════════════════════════════  완료 (${total}대)"
+
+echo
+echo "════════════════════════ 요약 (총 ${total}대) ════════════════════════"
+echo "  ✔ 성공 ${ok_n}:${OK_NAMES:-  (없음)}"
+echo "  ✘ 실패 ${fail_n}:${FAIL_NAMES:-  (없음)}"
+if [ "$fail_n" -gt 0 ]; then
+  echo "  · 실패 서버 원인은 위 로그에서 해당 이름으로 검색해 확인하세요."
+  echo "  · 결과 파일은 노트북의 ~/Downloads/<HOST>-results/ 에 서버별로 저장됩니다."
+fi
 exit $rc

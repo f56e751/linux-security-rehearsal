@@ -86,6 +86,7 @@ cp remote.conf.example robot5.conf     # 각각 값 채우고 chmod 600
 ```
 
 - 여러 대를 넘기면 **순차 실행**하고, 한 대가 실패해도 **나머지는 계속**(종료코드 1로 알림)
+- 서버마다 **접속 확인(OK/실패)** 을 먼저 찍고, 맨 끝에 **성공/실패 요약**(서버 목록) 출력
 - **자동 설치**: 서버에 도구가 없으면 `git clone`, git 자체가 없으면 apt/dnf/yum 으로 설치까지 시도
 - 결과는 서버별로 `~/Downloads/<HOST>-results/` 에 **분리 저장**
 - 로그인은 **SSH 키**(권장, 앞서 등록) 또는 `SSH_LOGIN_PASSWORD` + sshpass
