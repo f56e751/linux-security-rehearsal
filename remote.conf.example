@@ -24,5 +24,5 @@ SSH_LOGIN_PASSWORD=
 
 # 경로/옵션 (기본값 쓰려면 그대로 두세요)
 REMOTE_DIR=/home/robotics/Documents/linux-security-rehearsal
-LOCAL_DIR=                     # 비우면 ~/Downloads/<HOST>-results 로 저장
+LOCAL_DIR=                     # 비우면 레포 안 collected/ 폴더에 저장
 REHEARSE_ARGS=all --fetch --no-mark -y

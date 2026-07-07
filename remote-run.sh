@@ -27,7 +27,7 @@ run_one() {
   : "${USER:?$CONF 에 USER 설정 필요}"
   local SSH_PORT="${SSH_PORT:-22}"
   local REMOTE_DIR="${REMOTE_DIR:-/home/$USER/Documents/linux-security-rehearsal}"
-  local LOCAL_DIR="${LOCAL_DIR:-$HOME/Downloads/${HOST}-results}"
+  local LOCAL_DIR="${LOCAL_DIR:-$HERE/collected}"   # 기본: 레포 안 collected/ 폴더
   local REHEARSE_ARGS="${REHEARSE_ARGS:-all --fetch --no-mark -y}"
   local REPO_URL="${REPO_URL:-https://github.com/f56e751/linux-security-rehearsal.git}"
   local SUDO_PASSWORD="${SUDO_PASSWORD:-}"

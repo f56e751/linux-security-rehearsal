@@ -1,6 +1,7 @@
 # 리허설 산출물은 커밋하지 않음
 backups/
 results/
+collected/
 Linux_Password_Check.sh
 
 # 비밀번호가 든 원격 설정은 절대 커밋 금지 (서버별 *.conf 전부)
